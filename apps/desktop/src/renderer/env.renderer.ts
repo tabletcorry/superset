@@ -15,6 +15,7 @@ const envSchema = z.object({
 	NODE_ENV: z
 		.enum(["development", "production", "test"])
 		.default("development"),
+	SUPERSET_LOCAL_ONLY: z.string().optional(),
 	NEXT_PUBLIC_API_URL: z.url().default("https://api.superset.sh"),
 	NEXT_PUBLIC_WEB_URL: z.url().default("https://app.superset.sh"),
 	NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
@@ -31,6 +32,7 @@ const envSchema = z.object({
 const rawEnv = {
 	// These are replaced by Vite's define at build time
 	NODE_ENV: process.env.NODE_ENV,
+	SUPERSET_LOCAL_ONLY: process.env.SUPERSET_LOCAL_ONLY,
 	NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
 	NEXT_PUBLIC_WEB_URL: process.env.NEXT_PUBLIC_WEB_URL,
 	NEXT_PUBLIC_POSTHOG_KEY: import.meta.env.NEXT_PUBLIC_POSTHOG_KEY as
@@ -45,3 +47,6 @@ const rawEnv = {
 export const env = process.env.SKIP_ENV_VALIDATION
 	? (rawEnv as z.infer<typeof envSchema>)
 	: envSchema.parse(rawEnv);
+
+export const isLocalOnly =
+	env.SUPERSET_LOCAL_ONLY === "1" || env.SUPERSET_LOCAL_ONLY === "true";

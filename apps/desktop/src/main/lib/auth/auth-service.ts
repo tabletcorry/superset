@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { EventEmitter } from "node:events";
 import { type BrowserWindow, shell } from "electron";
-import { env } from "main/env.main";
+import { env, isLocalOnly } from "main/env.main";
 import type { AuthProvider, AuthSession, SignInResult } from "shared/auth";
 import { tokenStorage } from "./token-storage";
 
@@ -75,6 +75,12 @@ class AuthService extends EventEmitter {
 	 * Initialize auth service - load persisted session
 	 */
 	async initialize(): Promise<void> {
+		if (isLocalOnly) {
+			this.session = null;
+			this.emitStateChange();
+			return;
+		}
+
 		const session = await tokenStorage.load();
 
 		if (!session) {
@@ -123,7 +129,7 @@ class AuthService extends EventEmitter {
 	 */
 	getState() {
 		return {
-			isSignedIn: !!this.session,
+			isSignedIn: isLocalOnly || !!this.session,
 		};
 	}
 
@@ -133,6 +139,10 @@ class AuthService extends EventEmitter {
 	 * Returns null if offline or tokens invalid (caller should handle gracefully)
 	 */
 	async getAccessToken(): Promise<string | null> {
+		if (isLocalOnly) {
+			return null;
+		}
+
 		if (!this.session) {
 			return null;
 		}
@@ -254,6 +264,10 @@ class AuthService extends EventEmitter {
 		provider: AuthProvider,
 		_getWindow: () => BrowserWindow | null,
 	): Promise<SignInResult> {
+		if (isLocalOnly) {
+			return { success: true };
+		}
+
 		try {
 			// Generate state for CSRF protection
 			const state = generateState();
@@ -261,6 +275,12 @@ class AuthService extends EventEmitter {
 			let authUrl: URL;
 
 			if (provider === "github") {
+				if (!env.GH_CLIENT_ID) {
+					return {
+						success: false,
+						error: "Missing GH_CLIENT_ID for GitHub sign-in",
+					};
+				}
 				// Build GitHub OAuth URL
 				authUrl = new URL("https://github.com/login/oauth/authorize");
 				authUrl.searchParams.set("client_id", env.GH_CLIENT_ID);
@@ -271,6 +291,12 @@ class AuthService extends EventEmitter {
 				authUrl.searchParams.set("scope", "user:email");
 				authUrl.searchParams.set("state", state);
 			} else {
+				if (!env.GOOGLE_CLIENT_ID) {
+					return {
+						success: false,
+						error: "Missing GOOGLE_CLIENT_ID for Google sign-in",
+					};
+				}
 				// Build Google OAuth URL (default)
 				authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
 				authUrl.searchParams.set("client_id", env.GOOGLE_CLIENT_ID);
@@ -309,6 +335,10 @@ class AuthService extends EventEmitter {
 		refreshTokenExpiresAt: number;
 		state: string;
 	}): Promise<SignInResult> {
+		if (isLocalOnly) {
+			return { success: false, error: "Local-only mode enabled" };
+		}
+
 		try {
 			// Verify state for CSRF protection
 			if (!verifyState(params.state)) {
@@ -342,6 +372,11 @@ class AuthService extends EventEmitter {
 	 * Sign out - clear session
 	 */
 	async signOut(): Promise<void> {
+		if (isLocalOnly) {
+			this.emitStateChange();
+			return;
+		}
+
 		await this.clearSession();
 		console.log("[auth] Signed out");
 	}

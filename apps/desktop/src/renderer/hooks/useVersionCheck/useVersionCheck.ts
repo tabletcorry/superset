@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { env } from "renderer/env.renderer";
+import { env, isLocalOnly } from "renderer/env.renderer";
 import { lt } from "semver";
 
 interface VersionRequirements {
@@ -26,6 +26,16 @@ export function useVersionCheck(): UseVersionCheckResult {
 	const hasVerified = useRef(false);
 
 	const checkVersion = useCallback(async () => {
+		if (isLocalOnly) {
+			setState({
+				isLoading: false,
+				isBlocked: false,
+				requirements: null,
+				error: null,
+			});
+			return;
+		}
+
 		// Don't show loading state on re-checks (only on initial load)
 		if (!hasVerified.current) {
 			setState((prev) => ({ ...prev, isLoading: true }));
@@ -67,9 +77,19 @@ export function useVersionCheck(): UseVersionCheckResult {
 				error: error instanceof Error ? error : new Error("Unknown error"),
 			});
 		}
-	}, []);
+	}, [isLocalOnly, env.NEXT_PUBLIC_API_URL]);
 
 	useEffect(() => {
+		if (isLocalOnly) {
+			setState({
+				isLoading: false,
+				isBlocked: false,
+				requirements: null,
+				error: null,
+			});
+			return;
+		}
+
 		// Initial check
 		checkVersion();
 
@@ -82,7 +102,7 @@ export function useVersionCheck(): UseVersionCheckResult {
 
 		window.addEventListener("online", handleOnline);
 		return () => window.removeEventListener("online", handleOnline);
-	}, [checkVersion]);
+	}, [checkVersion, isLocalOnly]);
 
 	return state;
 }

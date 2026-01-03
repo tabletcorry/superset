@@ -24,6 +24,7 @@ import {
 } from "react-icons/hi2";
 import { LuLifeBuoy } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
+import { isLocalOnly } from "renderer/env.renderer";
 import { useOpenSettings, useOpenTasks } from "renderer/stores";
 import { useHotkeyDisplay } from "renderer/stores/hotkeys";
 
@@ -31,9 +32,10 @@ export function AvatarDropdown() {
 	const { data: user } = trpc.user.me.useQuery();
 	const openSettings = useOpenSettings();
 	const openTasks = useOpenTasks();
-	const hasTasksAccess = useFeatureFlagEnabled(
+	const tasksFeatureEnabled = useFeatureFlagEnabled(
 		FEATURE_FLAGS.ELECTRIC_TASKS_ACCESS,
 	);
+	const hasTasksAccess = !isLocalOnly && tasksFeatureEnabled;
 	const hotkeysShortcut = useHotkeyDisplay("SHOW_HOTKEYS");
 	const signOutMutation = trpc.auth.signOut.useMutation({
 		onSuccess: () => toast.success("Signed out"),
@@ -149,11 +151,15 @@ export function AvatarDropdown() {
 					<HiOutlineBugAnt className="h-4 w-4" />
 					Report Issue
 				</DropdownMenuItem>
-				<DropdownMenuSeparator />
-				<DropdownMenuItem onClick={handleSignOut}>
-					<HiOutlineArrowRightOnRectangle className="h-4 w-4" />
-					Sign Out
-				</DropdownMenuItem>
+				{!isLocalOnly && (
+					<>
+						<DropdownMenuSeparator />
+						<DropdownMenuItem onClick={handleSignOut}>
+							<HiOutlineArrowRightOnRectangle className="h-4 w-4" />
+							Sign Out
+						</DropdownMenuItem>
+					</>
+				)}
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

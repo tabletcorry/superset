@@ -1,6 +1,10 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
+const isLocalOnly =
+	process.env.SUPERSET_LOCAL_ONLY === "1" ||
+	process.env.SUPERSET_LOCAL_ONLY === "true";
+
 export const env = createEnv({
 	shared: {
 		NODE_ENV: z
@@ -45,5 +49,5 @@ export const env = createEnv({
 		NEXT_PUBLIC_SENTRY_ENVIRONMENT: process.env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
 	},
 	emptyStringAsUndefined: true,
-	skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+	skipValidation: isLocalOnly || !!process.env.SKIP_ENV_VALIDATION,
 });

@@ -76,6 +76,9 @@ export default defineConfig({
 			"process.env.SKIP_ENV_VALIDATION": JSON.stringify(
 				process.env.SKIP_ENV_VALIDATION || "",
 			),
+			"process.env.SUPERSET_LOCAL_ONLY": JSON.stringify(
+				process.env.SUPERSET_LOCAL_ONLY || "",
+			),
 			// API URLs - baked in at build time for main process
 			"process.env.NEXT_PUBLIC_API_URL": JSON.stringify(
 				process.env.NEXT_PUBLIC_API_URL || "https://api.superset.sh",
@@ -137,6 +140,9 @@ export default defineConfig({
 			"process.env.SKIP_ENV_VALIDATION": JSON.stringify(
 				process.env.SKIP_ENV_VALIDATION || "",
 			),
+			"process.env.SUPERSET_LOCAL_ONLY": JSON.stringify(
+				process.env.SUPERSET_LOCAL_ONLY || "",
+			),
 			__APP_VERSION__: JSON.stringify(version),
 		},
 
@@ -156,6 +162,9 @@ export default defineConfig({
 			"process.env.NODE_ENV": JSON.stringify(process.env.NODE_ENV),
 			"process.env.SKIP_ENV_VALIDATION": JSON.stringify(
 				process.env.SKIP_ENV_VALIDATION || "",
+			),
+			"process.env.SUPERSET_LOCAL_ONLY": JSON.stringify(
+				process.env.SUPERSET_LOCAL_ONLY || "",
 			),
 			"process.platform": JSON.stringify(process.platform),
 			// API URLs - available in renderer if needed

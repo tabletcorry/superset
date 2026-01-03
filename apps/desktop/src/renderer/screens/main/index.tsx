@@ -10,6 +10,7 @@ import { UpdateRequiredPage } from "renderer/components/UpdateRequiredPage";
 import { useUpdateListener } from "renderer/components/UpdateToast";
 import { useVersionCheck } from "renderer/hooks/useVersionCheck";
 import { trpc } from "renderer/lib/trpc";
+import { isLocalOnly } from "renderer/env.renderer";
 import { SignInScreen } from "renderer/screens/sign-in";
 import { useCurrentView, useOpenSettings } from "renderer/stores/app-state";
 import { useAppHotkey, useHotkeysSync } from "renderer/stores/hotkeys";
@@ -46,8 +47,11 @@ export function MainScreen() {
 
 	const { data: authState } = trpc.auth.getState.useQuery();
 	const isSignedIn =
-		!!process.env.SKIP_ENV_VALIDATION || (authState?.isSignedIn ?? false);
-	const isAuthLoading = !process.env.SKIP_ENV_VALIDATION && !authState;
+		isLocalOnly ||
+		!!process.env.SKIP_ENV_VALIDATION ||
+		(authState?.isSignedIn ?? false);
+	const isAuthLoading =
+		!isLocalOnly && !process.env.SKIP_ENV_VALIDATION && !authState;
 
 	// Subscribe to auth state changes
 	trpc.auth.onStateChange.useSubscription(undefined, {
@@ -57,9 +61,10 @@ export function MainScreen() {
 	const currentView = useCurrentView();
 	const openSettings = useOpenSettings();
 	const { toggleSidebar } = useSidebarStore();
-	const hasTasksAccess = useFeatureFlagEnabled(
+	const tasksFeatureEnabled = useFeatureFlagEnabled(
 		FEATURE_FLAGS.ELECTRIC_TASKS_ACCESS,
 	);
+	const hasTasksAccess = !isLocalOnly && tasksFeatureEnabled;
 	const {
 		data: activeWorkspace,
 		isLoading: isWorkspaceLoading,

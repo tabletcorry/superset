@@ -1,3 +1,4 @@
+import { isLocalOnly } from "main/env.main";
 import { apiClient } from "main/lib/api-client";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -24,6 +25,9 @@ export const createTasksRouter = () => {
 		update: publicProcedure
 			.input(updateTaskSchema)
 			.mutation(async ({ input }) => {
+				if (isLocalOnly) {
+					throw new Error("Tasks are unavailable in local-only mode.");
+				}
 				const result = await apiClient.task.update.mutate(input);
 				return result;
 			}),

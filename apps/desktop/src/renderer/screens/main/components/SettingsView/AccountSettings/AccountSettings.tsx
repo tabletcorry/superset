@@ -2,6 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@superset/ui/avatar";
 import { Button } from "@superset/ui/button";
 import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
+import { isLocalOnly } from "renderer/env.renderer";
 import { trpc } from "renderer/lib/trpc";
 
 export function AccountSettings() {
@@ -61,15 +62,17 @@ export function AccountSettings() {
 				</div>
 
 				{/* Sign Out Section */}
-				<div className="pt-6 border-t">
-					<h3 className="text-sm font-medium mb-2">Sign Out</h3>
-					<p className="text-sm text-muted-foreground mb-4">
-						Sign out of your Superset account on this device.
-					</p>
-					<Button variant="outline" onClick={() => signOut()}>
-						Sign Out
-					</Button>
-				</div>
+				{!isLocalOnly && (
+					<div className="pt-6 border-t">
+						<h3 className="text-sm font-medium mb-2">Sign Out</h3>
+						<p className="text-sm text-muted-foreground mb-4">
+							Sign out of your Superset account on this device.
+						</p>
+						<Button variant="outline" onClick={() => signOut()}>
+							Sign Out
+						</Button>
+					</div>
+				)}
 			</div>
 		</div>
 	);
