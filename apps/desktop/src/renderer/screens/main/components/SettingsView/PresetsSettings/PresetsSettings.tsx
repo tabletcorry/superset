@@ -29,10 +29,10 @@ const PRESET_TEMPLATES: PresetTemplate[] = [
 		name: "codex",
 		preset: {
 			name: "codex",
-			description: "Danger mode: All permissions auto-approved",
+			description: "Just Codex",
 			cwd: "",
 			commands: [
-				'codex -c model_reasoning_effort="high" --ask-for-approval never --sandbox danger-full-access -c model_reasoning_summary="detailed" -c model_supports_reasoning_summaries=true',
+				"codex"
 			],
 		},
 	},
@@ -40,9 +40,9 @@ const PRESET_TEMPLATES: PresetTemplate[] = [
 		name: "claude",
 		preset: {
 			name: "claude",
-			description: "Danger mode: All permissions auto-approved",
+			description: "Just Claude",
 			cwd: "",
-			commands: ["claude --dangerously-skip-permissions"],
+			commands: ["claude"],
 		},
 	},
 	{
