@@ -27,6 +27,11 @@ const testTmpDir = join(tmpdir(), "superset-test");
 const mockStyleMap = new Map<string, string>();
 const mockClassList = new Set<string>();
 
+const mockHead = {
+	appendChild: mock(() => {}),
+	removeChild: mock(() => {}),
+};
+
 // biome-ignore lint/suspicious/noExplicitAny: Test setup requires extending globalThis
 (globalThis as any).document = {
 	documentElement: {
@@ -45,6 +50,20 @@ const mockClassList = new Set<string>();
 			contains: (className: string) => mockClassList.has(className),
 		},
 	},
+	head: mockHead,
+	getElementsByTagName: mock((tag: string) => {
+		if (tag === "head") return [mockHead];
+		return [];
+	}),
+	createElement: mock((_tag: string) => ({
+		setAttribute: mock(() => {}),
+		appendChild: mock(() => {}),
+		textContent: "",
+		type: "",
+	})),
+	createTextNode: mock((text: string) => ({
+		textContent: text,
+	})),
 };
 
 // =============================================================================
@@ -99,7 +118,14 @@ mock.module("electron", () => ({
 	screen: {
 		getPrimaryDisplay: mock(() => ({
 			workAreaSize: { width: 1920, height: 1080 },
+			bounds: { x: 0, y: 0, width: 1920, height: 1080 },
 		})),
+		getAllDisplays: mock(() => [
+			{
+				bounds: { x: 0, y: 0, width: 1920, height: 1080 },
+				workAreaSize: { width: 1920, height: 1080 },
+			},
+		]),
 	},
 	Notification: mock(() => ({
 		show: mock(),
