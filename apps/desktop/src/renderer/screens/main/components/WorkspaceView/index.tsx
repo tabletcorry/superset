@@ -8,8 +8,6 @@ import {
 	useIsWorkspaceInitializing,
 } from "renderer/stores/workspace-init";
 import { ContentView } from "./ContentView";
-import { ResizableSidebar } from "./ResizableSidebar";
-import { WorkspaceActionBar } from "./WorkspaceActionBar";
 import { WorkspaceInitializingView } from "./WorkspaceInitializingView";
 
 export function WorkspaceView() {
@@ -63,7 +61,7 @@ export function WorkspaceView() {
 
 	// Tab management shortcuts
 	useAppHotkey(
-		"NEW_TERMINAL",
+		"NEW_GROUP",
 		() => {
 			if (activeWorkspaceId) {
 				addTab(activeWorkspaceId);
@@ -85,7 +83,7 @@ export function WorkspaceView() {
 		[focusedPaneId, removePane],
 	);
 
-	// Switch between tabs (configurable shortcut)
+	// Switch between tabs (⌘+Up/Down)
 	useAppHotkey(
 		"PREV_TERMINAL",
 		() => {
@@ -112,7 +110,7 @@ export function WorkspaceView() {
 		[activeWorkspaceId, activeTabId, tabs, setActiveTab],
 	);
 
-	// Switch between panes within a tab (configurable shortcut)
+	// Switch between panes within a tab (⌘+⌥+Left/Right)
 	useAppHotkey(
 		"PREV_PANE",
 		() => {
@@ -172,22 +170,16 @@ export function WorkspaceView() {
 
 	return (
 		<div className="flex-1 h-full flex flex-col overflow-hidden">
-			<div className="flex-1 flex bg-tertiary overflow-hidden">
-				<ResizableSidebar />
-				<div className="flex-1 min-w-0 h-full bg-background rounded-t-lg flex flex-col overflow-hidden">
-					<WorkspaceActionBar worktreePath={activeWorkspace?.worktreePath} />
-					<div className="flex-1 min-h-0 overflow-hidden">
-						{showInitView && activeWorkspaceId ? (
-							<WorkspaceInitializingView
-								workspaceId={activeWorkspaceId}
-								workspaceName={activeWorkspace?.name ?? "Workspace"}
-								isInterrupted={hasIncompleteInit && !isInitializing}
-							/>
-						) : (
-							<ContentView />
-						)}
-					</div>
-				</div>
+			<div className="flex-1 min-h-0 overflow-hidden">
+				{showInitView && activeWorkspaceId ? (
+					<WorkspaceInitializingView
+						workspaceId={activeWorkspaceId}
+						workspaceName={activeWorkspace?.name ?? "Workspace"}
+						isInterrupted={hasIncompleteInit && !isInitializing}
+					/>
+				) : (
+					<ContentView />
+				)}
 			</div>
 		</div>
 	);

@@ -422,8 +422,13 @@ export const HOTKEYS = {
 
 	// Layout
 	TOGGLE_SIDEBAR: defineHotkey({
+		keys: "meta+l",
+		label: "Toggle Changes Tab",
+		category: "Layout",
+	}),
+	TOGGLE_WORKSPACE_SIDEBAR: defineHotkey({
 		keys: "meta+b",
-		label: "Toggle Sidebar",
+		label: "Toggle Workspaces Sidebar",
 		category: "Layout",
 	}),
 	SPLIT_RIGHT: defineHotkey({
@@ -444,6 +449,12 @@ export const HOTKEYS = {
 		category: "Layout",
 		description: "Split the current pane along its longer side",
 	}),
+	CLOSE_PANE: defineHotkey({
+		keys: "meta+w",
+		label: "Close Pane",
+		category: "Layout",
+		description: "Close the current pane",
+	}),
 
 	// Terminal
 	FIND_IN_TERMINAL: defineHotkey({
@@ -452,9 +463,9 @@ export const HOTKEYS = {
 		category: "Terminal",
 		description: "Search text in the active terminal",
 	}),
-	NEW_TERMINAL: defineHotkey({
+	NEW_GROUP: defineHotkey({
 		keys: "meta+t",
-		label: "New Terminal",
+		label: "New Tab",
 		category: "Terminal",
 	}),
 	CLOSE_TERMINAL: defineHotkey({
@@ -573,6 +584,15 @@ export function getDefaultHotkey(
 	platform: HotkeyPlatform,
 ): string | null {
 	return HOTKEYS[id].defaults[platform];
+}
+
+/**
+ * Get the hotkey binding for the current platform.
+ * Convenience wrapper around getDefaultHotkey.
+ * Returns empty string if no hotkey is defined (safe for useHotkeys).
+ */
+export function getHotkey(id: HotkeyId): string {
+	return getDefaultHotkey(id, getCurrentPlatform()) ?? "";
 }
 
 export function getEffectiveHotkey(

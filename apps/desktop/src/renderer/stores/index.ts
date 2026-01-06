@@ -7,3 +7,4 @@ export * from "./sidebar-state";
 export * from "./tabs";
 export * from "./theme";
 export * from "./workspace-init";
+export * from "./workspace-sidebar-state";
