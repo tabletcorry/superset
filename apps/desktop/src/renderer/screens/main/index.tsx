@@ -31,6 +31,7 @@ import { TasksView } from "./components/TasksView";
 import { TopBar } from "./components/TopBar";
 import { WorkspaceInitEffects } from "./components/WorkspaceInitEffects";
 import { ResizableWorkspaceSidebar } from "./components/WorkspaceSidebar";
+import { WorkspacesListView } from "./components/WorkspacesListView";
 import { WorkspaceView } from "./components/WorkspaceView";
 
 function LoadingSpinner() {
@@ -78,7 +79,11 @@ export function MainScreen() {
 	const currentView = useCurrentView();
 	const openSettings = useOpenSettings();
 	const toggleSidebar = useSidebarStore((s) => s.toggleSidebar);
-	const toggleWorkspaceSidebar = useWorkspaceSidebarStore((s) => s.toggleOpen);
+	const {
+		isOpen: isWorkspaceSidebarOpen,
+		toggleCollapsed: toggleWorkspaceSidebarCollapsed,
+		setOpen: setWorkspaceSidebarOpen,
+	} = useWorkspaceSidebarStore();
 	const tasksFeatureEnabled = useFeatureFlagEnabled(
 		FEATURE_FLAGS.ELECTRIC_TASKS_ACCESS,
 	);
@@ -137,10 +142,20 @@ export function MainScreen() {
 	useAppHotkey(
 		"TOGGLE_WORKSPACE_SIDEBAR",
 		() => {
-			toggleWorkspaceSidebar();
+			if (!isWorkspaceSidebarOpen) {
+				// If sidebar is closed, open it to collapsed state
+				setWorkspaceSidebarOpen(true);
+			} else {
+				// If sidebar is open, toggle between collapsed and expanded
+				toggleWorkspaceSidebarCollapsed();
+			}
 		},
 		undefined,
-		[toggleWorkspaceSidebar],
+		[
+			isWorkspaceSidebarOpen,
+			setWorkspaceSidebarOpen,
+			toggleWorkspaceSidebarCollapsed,
+		],
 	);
 
 	/**
@@ -298,6 +313,9 @@ export function MainScreen() {
 		}
 		if (currentView === "tasks" && hasTasksAccess) {
 			return <TasksView />;
+		}
+		if (currentView === "workspaces-list") {
+			return <WorkspacesListView />;
 		}
 		return <WorkspaceView />;
 	};

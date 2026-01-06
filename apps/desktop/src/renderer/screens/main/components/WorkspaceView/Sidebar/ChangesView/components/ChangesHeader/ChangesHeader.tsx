@@ -7,37 +7,68 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useEffect, useRef, useState } from "react";
 import { HiArrowPath } from "react-icons/hi2";
+import { LuLoaderCircle } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
+import { PRIcon } from "renderer/screens/main/components/PRIcon";
+import { usePRStatus } from "renderer/screens/main/hooks";
 import { useChangesStore } from "renderer/stores/changes";
 import type { ChangesViewMode } from "../../types";
 import { ViewModeToggle } from "../ViewModeToggle";
 
 interface ChangesHeaderProps {
-	ahead: number;
-	behind: number;
-	isRefreshing: boolean;
 	onRefresh: () => void;
 	viewMode: ChangesViewMode;
 	onViewModeChange: (mode: ChangesViewMode) => void;
 	worktreePath: string;
+	workspaceId?: string;
 }
 
 export function ChangesHeader({
-	ahead: _ahead,
-	behind: _behind,
-	isRefreshing,
 	onRefresh,
 	viewMode,
 	onViewModeChange,
 	worktreePath,
+	workspaceId,
 }: ChangesHeaderProps) {
+	const [isManualRefresh, setIsManualRefresh] = useState(false);
+	const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+	const handleRefresh = () => {
+		setIsManualRefresh(true);
+		onRefresh();
+		// Clear any existing timeout
+		if (timeoutRef.current) {
+			clearTimeout(timeoutRef.current);
+		}
+		// Stop spinning after a short delay
+		timeoutRef.current = setTimeout(() => {
+			setIsManualRefresh(false);
+		}, 600);
+	};
+
+	// Cleanup timeout on unmount
+	useEffect(() => {
+		return () => {
+			if (timeoutRef.current) {
+				clearTimeout(timeoutRef.current);
+				timeoutRef.current = null;
+			}
+		};
+	}, []);
+
 	const { baseBranch, setBaseBranch } = useChangesStore();
 
 	const { data: branchData, isLoading } = trpc.changes.getBranches.useQuery(
 		{ worktreePath },
 		{ enabled: !!worktreePath },
 	);
+
+	const { pr, isLoading: isPRLoading } = usePRStatus({
+		workspaceId,
+		refetchInterval: 10000,
+	});
 
 	const effectiveBaseBranch = baseBranch ?? branchData?.defaultBranch ?? "main";
 	const availableBranches = branchData?.remote ?? [];
@@ -56,10 +87,13 @@ export function ChangesHeader({
 	};
 
 	return (
-		<div className="flex flex-col gap-2.5 px-3 py-2.5 border-b border-border">
-			<div className="flex flex-row items-center gap-1.5 flex-wrap flex-1 min-w-0 text-xs">
+		<div className="flex items-center justify-between gap-1.5 px-2 py-1.5">
+			<div className="flex items-center gap-1 min-w-0 flex-1">
+				<span className="text-[10px] text-muted-foreground shrink-0">
+					Base:
+				</span>
 				{isLoading || !branchData ? (
-					<span className="px-2 py-0.5 rounded-md bg-muted/50 text-foreground font-medium shrink-0">
+					<span className="px-1.5 py-0.5 rounded bg-muted/50 text-foreground text-[10px] font-medium truncate">
 						{effectiveBaseBranch}
 					</span>
 				) : (
@@ -68,7 +102,7 @@ export function ChangesHeader({
 							<TooltipTrigger asChild>
 								<SelectTrigger
 									size="sm"
-									className="h-6 px-2 py-0 text-xs font-medium border-none bg-muted/50 hover:bg-muted text-foreground min-w-0 w-auto gap-1 rounded-md"
+									className="h-5 px-1.5 py-0 text-[10px] font-medium border-none bg-muted/50 hover:bg-muted text-foreground min-w-0 w-auto gap-0.5 rounded"
 								>
 									<SelectValue />
 								</SelectTrigger>
@@ -93,6 +127,8 @@ export function ChangesHeader({
 						</TooltipContent>
 					</Tooltip>
 				)}
+			</div>
+			<div className="flex items-center shrink-0">
 				<ViewModeToggle
 					viewMode={viewMode}
 					onViewModeChange={onViewModeChange}
@@ -102,12 +138,12 @@ export function ChangesHeader({
 						<Button
 							variant="ghost"
 							size="icon"
-							onClick={onRefresh}
-							disabled={isRefreshing}
-							className="h-7 w-7 p-0 shrink-0"
+							onClick={handleRefresh}
+							disabled={isManualRefresh}
+							className="size-6 p-0"
 						>
 							<HiArrowPath
-								className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
+								className={`size-3.5 ${isManualRefresh ? "animate-spin" : ""}`}
 							/>
 						</Button>
 					</TooltipTrigger>
@@ -115,6 +151,30 @@ export function ChangesHeader({
 						Refresh changes
 					</TooltipContent>
 				</Tooltip>
+
+				{/* PR Status Icon */}
+				{isPRLoading ? (
+					<LuLoaderCircle className="w-4 h-4 animate-spin text-muted-foreground shrink-0" />
+				) : pr ? (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<a
+								href={pr.url}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="flex items-center gap-1 shrink-0 hover:opacity-80 transition-opacity"
+							>
+								<PRIcon state={pr.state} className="w-4 h-4" />
+								<span className="text-xs text-muted-foreground font-mono">
+									#{pr.number}
+								</span>
+							</a>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" showArrow={false}>
+							View PR on GitHub
+						</TooltipContent>
+					</Tooltip>
+				) : null}
 			</div>
 		</div>
 	);

@@ -2,7 +2,6 @@ import { trpc } from "renderer/lib/trpc";
 import { AvatarDropdown } from "../AvatarDropdown";
 import { OpenInMenuButton } from "./OpenInMenuButton";
 import { WindowControls } from "./WindowControls";
-import { WorkspaceSidebarControl } from "./WorkspaceSidebarControl";
 
 export function TopBar() {
 	const { data: platform } = trpc.window.getPlatform.useQuery();
@@ -17,19 +16,9 @@ export function TopBar() {
 				style={{
 					paddingLeft: isMac ? "88px" : "16px",
 				}}
-			>
-				<WorkspaceSidebarControl />
-			</div>
+			/>
 
-			<div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden h-full px-4">
-				{activeWorkspace && (
-					<span className="text-sm font-medium truncate">
-						{activeWorkspace.project?.name ?? "Workspace"}
-						<span className="text-muted-foreground mx-2">/</span>
-						{activeWorkspace.name}
-					</span>
-				)}
-			</div>
+			<div className="flex-1" />
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
 				{activeWorkspace?.worktreePath && (
