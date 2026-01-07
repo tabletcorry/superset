@@ -19,18 +19,24 @@ import { getPaneDimensions } from "renderer/stores/tabs/pane-refs";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { Tab } from "renderer/stores/tabs/types";
 import { useAgentHookListener } from "renderer/stores/tabs/useAgentHookListener";
+import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
 import { findPanePath, getFirstPaneId } from "renderer/stores/tabs/utils";
 import { useWorkspaceInitStore } from "renderer/stores/workspace-init";
-import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
+import {
+	COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
+	MAX_WORKSPACE_SIDEBAR_WIDTH,
+	useWorkspaceSidebarStore,
+} from "renderer/stores/workspace-sidebar-state";
 import { dragDropManager } from "../../lib/dnd";
 import { AppFrame } from "./components/AppFrame";
 import { Background } from "./components/Background";
+import { ResizablePanel } from "./components/ResizablePanel";
 import { SettingsView } from "./components/SettingsView";
 import { StartView } from "./components/StartView";
 import { TasksView } from "./components/TasksView";
 import { TopBar } from "./components/TopBar";
 import { WorkspaceInitEffects } from "./components/WorkspaceInitEffects";
-import { ResizableWorkspaceSidebar } from "./components/WorkspaceSidebar";
+import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
 import { WorkspacesListView } from "./components/WorkspacesListView";
 import { WorkspaceView } from "./components/WorkspaceView";
 
@@ -83,6 +89,11 @@ export function MainScreen() {
 		isOpen: isWorkspaceSidebarOpen,
 		toggleCollapsed: toggleWorkspaceSidebarCollapsed,
 		setOpen: setWorkspaceSidebarOpen,
+		width: workspaceSidebarWidth,
+		setWidth: setWorkspaceSidebarWidth,
+		isResizing: isWorkspaceSidebarResizing,
+		setIsResizing: setWorkspaceSidebarIsResizing,
+		isCollapsed: isWorkspaceSidebarCollapsed,
 	} = useWorkspaceSidebarStore();
 	const tasksFeatureEnabled = useFeatureFlagEnabled(
 		FEATURE_FLAGS.ELECTRIC_TASKS_ACCESS,
@@ -98,9 +109,8 @@ export function MainScreen() {
 		enabled: isSignedIn,
 	});
 	const [isRetrying, setIsRetrying] = useState(false);
-	const splitPaneAuto = useTabsStore((s) => s.splitPaneAuto);
-	const splitPaneVertical = useTabsStore((s) => s.splitPaneVertical);
-	const splitPaneHorizontal = useTabsStore((s) => s.splitPaneHorizontal);
+	const { splitPaneAuto, splitPaneVertical, splitPaneHorizontal } =
+		useTabsWithPresets();
 	const setFocusedPane = useTabsStore((s) => s.setFocusedPane);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const focusedPaneIds = useTabsStore((s) => s.focusedPaneIds);
@@ -388,7 +398,22 @@ export function MainScreen() {
 					<div className="flex flex-col h-full w-full">
 						<TopBar />
 						<div className="flex flex-1 overflow-hidden">
-							<ResizableWorkspaceSidebar />
+							{isWorkspaceSidebarOpen && (
+								<ResizablePanel
+									width={workspaceSidebarWidth}
+									onWidthChange={setWorkspaceSidebarWidth}
+									isResizing={isWorkspaceSidebarResizing}
+									onResizingChange={setWorkspaceSidebarIsResizing}
+									minWidth={COLLAPSED_WORKSPACE_SIDEBAR_WIDTH}
+									maxWidth={MAX_WORKSPACE_SIDEBAR_WIDTH}
+									handleSide="right"
+									clampWidth={false}
+								>
+									<WorkspaceSidebar
+										isCollapsed={isWorkspaceSidebarCollapsed()}
+									/>
+								</ResizablePanel>
+							)}
 							{renderContent()}
 						</div>
 					</div>

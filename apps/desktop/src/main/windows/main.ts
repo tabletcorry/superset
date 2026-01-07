@@ -13,7 +13,7 @@ import { appState } from "../lib/app-state";
 import { createApplicationMenu, registerMenuHotkeyUpdates } from "../lib/menu";
 import { playNotificationSound } from "../lib/notification-sound";
 import {
-	type AgentCompleteEvent,
+	type AgentLifecycleEvent,
 	notificationsApp,
 	notificationsEmitter,
 } from "../lib/notifications/server";
@@ -58,6 +58,9 @@ export async function MainWindow() {
 		webPreferences: {
 			preload: join(__dirname, "../preload/index.js"),
 			webviewTag: true,
+			// Isolate Electron session from system browser cookies
+			// This ensures desktop uses bearer token auth, not web cookies
+			partition: "persist:superset",
 		},
 	});
 
@@ -86,10 +89,13 @@ export async function MainWindow() {
 		},
 	);
 
-	// Handle agent completion notifications
+	// Handle agent lifecycle notifications (Stop = completion, PermissionRequest = needs input)
 	notificationsEmitter.on(
-		NOTIFICATION_EVENTS.AGENT_COMPLETE,
-		(event: AgentCompleteEvent) => {
+		NOTIFICATION_EVENTS.AGENT_LIFECYCLE,
+		(event: AgentLifecycleEvent) => {
+			// Only notify on Stop (completion) and PermissionRequest - not on Start
+			if (event.eventType === "Start") return;
+
 			if (Notification.isSupported()) {
 				const isPermissionRequest = event.eventType === "PermissionRequest";
 

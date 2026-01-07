@@ -2,7 +2,7 @@ import type * as Monaco from "monaco-editor";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import { useTabsStore } from "renderer/stores/tabs/store";
-import type { Pane } from "renderer/stores/tabs/types";
+import type { Pane, Tab } from "renderer/stores/tabs/types";
 import type { FileViewerMode } from "shared/tabs-types";
 import { BasePaneWindow } from "../components";
 import { FileViewerContent } from "./components/FileViewerContent";
@@ -24,8 +24,21 @@ interface FileViewerPaneProps {
 		dimensions: { width: number; height: number },
 		path?: MosaicBranch[],
 	) => void;
+	splitPaneHorizontal: (
+		tabId: string,
+		sourcePaneId: string,
+		path?: MosaicBranch[],
+	) => void;
+	splitPaneVertical: (
+		tabId: string,
+		sourcePaneId: string,
+		path?: MosaicBranch[],
+	) => void;
 	removePane: (paneId: string) => void;
 	setFocusedPane: (tabId: string, paneId: string) => void;
+	availableTabs: Tab[];
+	onMoveToTab: (targetTabId: string) => void;
+	onMoveToNewTab: () => void;
 }
 
 export function FileViewerPane({
@@ -36,8 +49,13 @@ export function FileViewerPane({
 	tabId,
 	worktreePath,
 	splitPaneAuto,
+	splitPaneHorizontal,
+	splitPaneVertical,
 	removePane,
 	setFocusedPane,
+	availableTabs,
+	onMoveToTab,
+	onMoveToNewTab,
 }: FileViewerPaneProps) {
 	const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
 	const [isDirty, setIsDirty] = useState(false);
@@ -52,12 +70,14 @@ export function FileViewerPane({
 	const fileViewer = pane.fileViewer;
 	const filePath = fileViewer?.filePath ?? "";
 	const viewMode = fileViewer?.viewMode ?? "raw";
-	const isLocked = fileViewer?.isLocked ?? false;
+	const isPinned = fileViewer?.isPinned ?? false;
 	const diffCategory = fileViewer?.diffCategory;
 	const commitHash = fileViewer?.commitHash;
 	const oldPath = fileViewer?.oldPath;
 	const initialLine = fileViewer?.initialLine;
 	const initialColumn = fileViewer?.initialColumn;
+
+	const pinPane = useTabsStore((s) => s.pinPane);
 
 	const { handleSaveRaw, handleSaveDiff, isSaving } = useFileSave({
 		worktreePath,
@@ -101,6 +121,13 @@ export function FileViewerPane({
 		draftContentRef.current = null;
 	}, [filePath]);
 
+	// Auto-pin when user makes edits (converts preview to pinned)
+	useEffect(() => {
+		if (isDirty && !isPinned) {
+			pinPane(paneId);
+		}
+	}, [isDirty, isPinned, paneId, pinPane]);
+
 	const handleDiffChange = useCallback((content: string) => {
 		currentDiffContentRef.current = content;
 		if (originalDiffContentRef.current === "") {
@@ -129,23 +156,8 @@ export function FileViewerPane({
 		);
 	}
 
-	const handleToggleLock = () => {
-		const panes = useTabsStore.getState().panes;
-		const currentPane = panes[paneId];
-		if (currentPane?.fileViewer) {
-			useTabsStore.setState({
-				panes: {
-					...panes,
-					[paneId]: {
-						...currentPane,
-						fileViewer: {
-							...currentPane.fileViewer,
-							isLocked: !currentPane.fileViewer.isLocked,
-						},
-					},
-				},
-			});
-		}
+	const handlePin = () => {
+		pinPane(paneId);
 	};
 
 	const switchToMode = (newMode: FileViewerMode) => {
@@ -259,14 +271,14 @@ export function FileViewerPane({
 							isDirty={isDirty}
 							isSaving={isSaving}
 							viewMode={viewMode}
-							isLocked={isLocked}
+							isPinned={isPinned}
 							isMarkdown={isMarkdown}
 							hasDiff={hasDiff}
 							showEditableBadge={showEditableBadge}
 							splitOrientation={handlers.splitOrientation}
 							onViewModeChange={handleViewModeChange}
 							onSplitPane={handlers.onSplitPane}
-							onToggleLock={handleToggleLock}
+							onPin={handlePin}
 							onClosePane={handlers.onClosePane}
 						/>
 					</div>
@@ -290,6 +302,14 @@ export function FileViewerPane({
 					onEditorChange={handleEditorChange}
 					onDiffChange={isDiffEditable ? handleDiffChange : undefined}
 					setIsDirty={setIsDirty}
+					// Context menu props
+					onSplitHorizontal={() => splitPaneHorizontal(tabId, paneId, path)}
+					onSplitVertical={() => splitPaneVertical(tabId, paneId, path)}
+					onClosePane={() => removePane(paneId)}
+					currentTabId={tabId}
+					availableTabs={availableTabs}
+					onMoveToTab={onMoveToTab}
+					onMoveToNewTab={onMoveToNewTab}
 				/>
 			</BasePaneWindow>
 			<UnsavedChangesDialog

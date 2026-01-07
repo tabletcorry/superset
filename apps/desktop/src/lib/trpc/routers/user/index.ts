@@ -4,13 +4,21 @@ import { publicProcedure, router } from "../..";
 
 const localUser = {
 	id: "local-user",
-	clerkId: "local-user",
 	name: "Local User",
 	email: "local@localhost",
-	avatarUrl: null,
-	deletedAt: null,
+	emailVerified: true,
+	image: null,
 	createdAt: new Date(),
 	updatedAt: new Date(),
+};
+
+const localOrganization = {
+	id: "local-org",
+	name: "Local Workspace",
+	slug: "local",
+	logo: null,
+	createdAt: new Date(),
+	metadata: null,
 };
 
 /**
@@ -30,7 +38,7 @@ export const createUserRouter = () => {
 
 		myOrganizations: publicProcedure.query(async () => {
 			if (isLocalOnly) {
-				return [];
+				return [localOrganization];
 			}
 			return apiClient.user.myOrganizations.query();
 		}),

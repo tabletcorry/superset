@@ -102,7 +102,8 @@ export const createPane = (
 export interface CreateFileViewerPaneOptions {
 	filePath: string;
 	viewMode?: FileViewerMode;
-	isLocked?: boolean;
+	/** If true, opens pinned (permanent). If false/undefined, opens in preview mode (can be replaced) */
+	isPinned?: boolean;
 	diffLayout?: DiffLayout;
 	diffCategory?: ChangeCategory;
 	commitHash?: string;
@@ -135,7 +136,7 @@ export const createFileViewerPane = (
 	const fileViewer: FileViewerState = {
 		filePath: options.filePath,
 		viewMode: options.viewMode ?? defaultViewMode,
-		isLocked: options.isLocked ?? false,
+		isPinned: options.isPinned ?? false,
 		diffLayout: options.diffLayout ?? "inline",
 		diffCategory: options.diffCategory,
 		commitHash: options.commitHash,
@@ -331,6 +332,27 @@ export const getPreviousPaneId = (
 
 	const prevIndex = (currentIndex - 1 + paneIds.length) % paneIds.length;
 	return paneIds[prevIndex];
+};
+
+/**
+ * Gets the adjacent pane ID for focus fallback when a pane is closed.
+ * Prefers the next pane in visual order, falls back to previous if at the end.
+ * Returns null only if the pane is the only one in the layout.
+ */
+export const getAdjacentPaneId = (
+	layout: MosaicNode<string>,
+	closingPaneId: string,
+): string | null => {
+	const paneIds = getPaneIdsInVisualOrder(layout);
+	if (paneIds.length <= 1) return null;
+
+	const currentIndex = paneIds.indexOf(closingPaneId);
+	if (currentIndex === -1) return paneIds[0];
+
+	if (currentIndex < paneIds.length - 1) {
+		return paneIds[currentIndex + 1];
+	}
+	return paneIds[currentIndex - 1];
 };
 
 /**

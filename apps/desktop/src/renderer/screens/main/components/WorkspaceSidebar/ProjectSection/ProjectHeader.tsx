@@ -3,27 +3,30 @@ import {
 	ContextMenuContent,
 	ContextMenuItem,
 	ContextMenuSeparator,
+	ContextMenuSub,
+	ContextMenuSubContent,
+	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { HiChevronRight, HiMiniPlus, HiOutlineBolt } from "react-icons/hi2";
-import { LuFolderOpen, LuSettings, LuX } from "react-icons/lu";
+import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
+import { LuFolderOpen, LuPalette, LuSettings, LuX } from "react-icons/lu";
 import { trpc } from "renderer/lib/trpc";
+import { useUpdateProject } from "renderer/react-query/projects/useUpdateProject";
 import { useOpenSettings } from "renderer/stores/app-state";
+import {
+	PROJECT_COLOR_DEFAULT,
+	PROJECT_COLORS,
+} from "shared/constants/project-colors";
 import { STROKE_WIDTH } from "../constants";
 import { ProjectThumbnail } from "./ProjectThumbnail";
 
 interface ProjectHeaderProps {
 	projectId: string;
 	projectName: string;
+	projectColor: string;
 	githubOwner: string | null;
 	mainRepoPath: string;
 	/** Whether the project section is collapsed (workspaces hidden) */
@@ -33,15 +36,12 @@ interface ProjectHeaderProps {
 	onToggleCollapse: () => void;
 	workspaceCount: number;
 	onNewWorkspace: () => void;
-	onQuickCreate: () => void;
-	isCreating: boolean;
-	dropdownOpen: boolean;
-	onDropdownOpenChange: (open: boolean) => void;
 }
 
 export function ProjectHeader({
 	projectId,
 	projectName,
+	projectColor,
 	githubOwner,
 	mainRepoPath,
 	isCollapsed,
@@ -49,10 +49,6 @@ export function ProjectHeader({
 	onToggleCollapse,
 	workspaceCount,
 	onNewWorkspace,
-	onQuickCreate,
-	isCreating,
-	dropdownOpen,
-	onDropdownOpenChange,
 }: ProjectHeaderProps) {
 	const utils = trpc.useUtils();
 	const openSettings = useOpenSettings();
@@ -87,6 +83,48 @@ export function ProjectHeader({
 		openSettings("project");
 	};
 
+	const updateProject = useUpdateProject({
+		onError: (error) => toast.error(`Failed to update color: ${error.message}`),
+	});
+
+	const handleColorChange = (color: string) => {
+		updateProject.mutate({ id: projectId, patch: { color } });
+	};
+
+	// Color picker submenu used in both collapsed and expanded context menus
+	const colorPickerSubmenu = (
+		<ContextMenuSub>
+			<ContextMenuSubTrigger>
+				<LuPalette className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+				Set Color
+			</ContextMenuSubTrigger>
+			<ContextMenuSubContent className="w-36">
+				{PROJECT_COLORS.map((color) => {
+					const isDefault = color.value === PROJECT_COLOR_DEFAULT;
+					return (
+						<ContextMenuItem
+							key={color.value}
+							onSelect={() => handleColorChange(color.value)}
+							className="flex items-center gap-2"
+						>
+							<span
+								className={cn(
+									"size-3 rounded-full border",
+									isDefault ? "border-border bg-muted" : "border-border/50",
+								)}
+								style={isDefault ? undefined : { backgroundColor: color.value }}
+							/>
+							<span>{color.name}</span>
+							{projectColor === color.value && (
+								<span className="ml-auto text-xs text-muted-foreground">✓</span>
+							)}
+						</ContextMenuItem>
+					);
+				})}
+			</ContextMenuSubContent>
+		</ContextMenuSub>
+	);
+
 	// Collapsed sidebar: show just the thumbnail with tooltip and context menu
 	if (isSidebarCollapsed) {
 		return (
@@ -105,6 +143,7 @@ export function ProjectHeader({
 								<ProjectThumbnail
 									projectId={projectId}
 									projectName={projectName}
+									projectColor={projectColor}
 									githubOwner={githubOwner}
 								/>
 							</button>
@@ -126,6 +165,7 @@ export function ProjectHeader({
 						<LuSettings className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 						Project Settings
 					</ContextMenuItem>
+					{colorPickerSubmenu}
 					<ContextMenuSeparator />
 					<ContextMenuItem
 						onSelect={handleCloseProject}
@@ -158,6 +198,7 @@ export function ProjectHeader({
 						<ProjectThumbnail
 							projectId={projectId}
 							projectName={projectName}
+							projectColor={projectColor}
 							githubOwner={githubOwner}
 						/>
 						<span className="truncate">{projectName}</span>
@@ -167,56 +208,24 @@ export function ProjectHeader({
 					</button>
 
 					{/* Add workspace button */}
-					<div className="relative shrink-0 ml-1">
-						<DropdownMenu
-							open={dropdownOpen}
-							onOpenChange={onDropdownOpenChange}
-						>
-							<Tooltip delayDuration={500}>
-								<TooltipTrigger asChild>
-									<DropdownMenuTrigger asChild>
-										<button
-											type="button"
-											disabled={isCreating}
-											onClick={(e) => e.stopPropagation()}
-											onContextMenu={(e) => e.stopPropagation()}
-											className={cn(
-												"p-1 rounded hover:bg-muted transition-colors",
-												dropdownOpen && "bg-muted",
-											)}
-										>
-											<HiMiniPlus className="size-4 text-muted-foreground" />
-										</button>
-									</DropdownMenuTrigger>
-								</TooltipTrigger>
-								<TooltipContent side="bottom" sideOffset={4}>
-									Add workspace
-								</TooltipContent>
-							</Tooltip>
-							<DropdownMenuContent
-								align="end"
-								sideOffset={4}
-								className="w-44 rounded-lg border-border/40 bg-popover/95 p-1 shadow-lg backdrop-blur-sm"
-								onClick={(e) => e.stopPropagation()}
+					<Tooltip delayDuration={500}>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={(e) => {
+									e.stopPropagation();
+									onNewWorkspace();
+								}}
+								onContextMenu={(e) => e.stopPropagation()}
+								className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
 							>
-								<DropdownMenuItem
-									onClick={onNewWorkspace}
-									className="rounded-md text-[13px]"
-								>
-									<HiMiniPlus className="size-[14px] opacity-60" />
-									New Workspace
-								</DropdownMenuItem>
-								<DropdownMenuItem
-									onClick={onQuickCreate}
-									disabled={isCreating}
-									className="rounded-md text-[13px]"
-								>
-									<HiOutlineBolt className="size-[14px] opacity-60" />
-									Quick Create
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
-					</div>
+								<HiMiniPlus className="size-4 text-muted-foreground" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="bottom" sideOffset={4}>
+							New workspace
+						</TooltipContent>
+					</Tooltip>
 
 					{/* Collapse chevron */}
 					<button
@@ -244,6 +253,7 @@ export function ProjectHeader({
 					<LuSettings className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 					Project Settings
 				</ContextMenuItem>
+				{colorPickerSubmenu}
 				<ContextMenuSeparator />
 				<ContextMenuItem
 					onSelect={handleCloseProject}
