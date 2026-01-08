@@ -12,6 +12,7 @@ import { posthog } from "./lib/analytics";
 import { initAppState } from "./lib/app-state";
 import { authService, parseAuthDeepLink } from "./lib/auth";
 import { setupAutoUpdater } from "./lib/auto-updater";
+import { isLocalOnly } from "./env.main";
 import { localDb } from "./lib/local-db";
 import { terminalManager } from "./lib/terminal";
 import { MainWindow } from "./windows/main";
@@ -215,7 +216,9 @@ if (!gotTheLock) {
 		}
 
 		await makeAppSetup(() => MainWindow());
-		setupAutoUpdater();
+		if (!isLocalOnly) {
+			setupAutoUpdater();
+		}
 
 		// Handle cold-start deep links (Windows/Linux - app launched via deep link)
 		const coldStartUrl = findDeepLinkInArgv(process.argv);

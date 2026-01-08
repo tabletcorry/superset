@@ -1,6 +1,6 @@
 import { COMPANY } from "@superset/shared/constants";
 import { app, Menu, shell } from "electron";
-import { env } from "main/env.main";
+import { env, isLocalOnly } from "main/env.main";
 import { appState } from "main/lib/app-state";
 import { hotkeysEmitter } from "main/lib/hotkeys-events";
 import {
@@ -109,7 +109,7 @@ export function createApplicationMenu() {
 	];
 
 	// DEV ONLY: Add Dev menu
-	if (env.NODE_ENV === "development") {
+	if (env.NODE_ENV === "development" && !isLocalOnly) {
 		template.push({
 			label: "Dev",
 			submenu: [
@@ -130,25 +130,31 @@ export function createApplicationMenu() {
 	}
 
 	if (process.platform === "darwin") {
+		const appSubmenu: Electron.MenuItemConstructorOptions[] = [
+			{ role: "about" },
+		];
+		if (!isLocalOnly) {
+			appSubmenu.push({
+				label: "Check for Updates...",
+				click: () => {
+					checkForUpdatesInteractive();
+				},
+			});
+		}
+		appSubmenu.push(
+			{ type: "separator" },
+			{ role: "services" },
+			{ type: "separator" },
+			{ role: "hide" },
+			{ role: "hideOthers" },
+			{ role: "unhide" },
+			{ type: "separator" },
+			{ role: "quit" },
+		);
+
 		template.unshift({
 			label: app.name,
-			submenu: [
-				{ role: "about" },
-				{
-					label: "Check for Updates...",
-					click: () => {
-						checkForUpdatesInteractive();
-					},
-				},
-				{ type: "separator" },
-				{ role: "services" },
-				{ type: "separator" },
-				{ role: "hide" },
-				{ role: "hideOthers" },
-				{ role: "unhide" },
-				{ type: "separator" },
-				{ role: "quit" },
-			],
+			submenu: appSubmenu,
 		});
 	}
 

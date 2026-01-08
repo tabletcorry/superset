@@ -1,7 +1,7 @@
 import { EventEmitter } from "node:events";
 import { app, dialog } from "electron";
 import { autoUpdater } from "electron-updater";
-import { env } from "main/env.main";
+import { env, isLocalOnly } from "main/env.main";
 import { setSkipQuitConfirmation } from "main/index";
 import { AUTO_UPDATE_STATUS, type AutoUpdateStatus } from "shared/auto-update";
 import { PLATFORM } from "shared/constants";
@@ -38,6 +38,9 @@ function emitStatus(
 }
 
 export function getUpdateStatus(): AutoUpdateStatusEvent {
+	if (isLocalOnly) {
+		return { status: AUTO_UPDATE_STATUS.IDLE };
+	}
 	if (isDismissed && currentStatus === AUTO_UPDATE_STATUS.READY) {
 		return { status: AUTO_UPDATE_STATUS.IDLE };
 	}
@@ -45,6 +48,10 @@ export function getUpdateStatus(): AutoUpdateStatusEvent {
 }
 
 export function installUpdate(): void {
+	if (isLocalOnly) {
+		console.info("[auto-updater] Install skipped in local-only mode");
+		return;
+	}
 	if (env.NODE_ENV === "development") {
 		console.info("[auto-updater] Install skipped in dev mode");
 		emitStatus(AUTO_UPDATE_STATUS.IDLE);
@@ -61,7 +68,7 @@ export function dismissUpdate(): void {
 }
 
 export function checkForUpdates(): void {
-	if (env.NODE_ENV === "development" || !PLATFORM.IS_MAC) {
+	if (isLocalOnly || env.NODE_ENV === "development" || !PLATFORM.IS_MAC) {
 		return;
 	}
 	isDismissed = false;
@@ -73,6 +80,14 @@ export function checkForUpdates(): void {
 }
 
 export function checkForUpdatesInteractive(): void {
+	if (isLocalOnly) {
+		dialog.showMessageBox({
+			type: "info",
+			title: "Updates",
+			message: "Auto-updates are disabled in local-only mode.",
+		});
+		return;
+	}
 	if (env.NODE_ENV === "development") {
 		dialog.showMessageBox({
 			type: "info",
@@ -121,19 +136,19 @@ export function checkForUpdatesInteractive(): void {
 }
 
 export function simulateUpdateReady(): void {
-	if (env.NODE_ENV !== "development") return;
+	if (isLocalOnly || env.NODE_ENV !== "development") return;
 	isDismissed = false;
 	emitStatus(AUTO_UPDATE_STATUS.READY, "99.0.0-test");
 }
 
 export function simulateDownloading(): void {
-	if (env.NODE_ENV !== "development") return;
+	if (isLocalOnly || env.NODE_ENV !== "development") return;
 	isDismissed = false;
 	emitStatus(AUTO_UPDATE_STATUS.DOWNLOADING, "99.0.0-test");
 }
 
 export function simulateError(): void {
-	if (env.NODE_ENV !== "development") return;
+	if (isLocalOnly || env.NODE_ENV !== "development") return;
 	isDismissed = false;
 	emitStatus(
 		AUTO_UPDATE_STATUS.ERROR,
@@ -143,7 +158,7 @@ export function simulateError(): void {
 }
 
 export function setupAutoUpdater(): void {
-	if (env.NODE_ENV === "development" || !PLATFORM.IS_MAC) {
+	if (isLocalOnly || env.NODE_ENV === "development" || !PLATFORM.IS_MAC) {
 		return;
 	}
 
